@@ -3,7 +3,7 @@
 #endregion Private
 #region Public
 function Update-PiStore {
-    [cmdletsbinding()]
+    [cmdletbinding()]
     param ()
     $raspberrysettings = Get-Content .\RaspberrySettings.json | ConvertFrom-Json
     Copy-Item -path "..\..\Code" -Destination $("\\" + $($raspberrysettings.deviceAddress) + $raspberrysettings.DeploymentDir) -Recurse
@@ -11,13 +11,13 @@ function Update-PiStore {
 
 function Update-PiConnectionSettings {
     
-    [cmdletsbinding()]
+    [cmdletbinding()]
     param (
         [Parameter(Mandatory=$false)]    
         [string]$userName,
     
         [Parameter(Mandatory=$false)]
-        [securestring]$Password,
+        [string]$Password,
 
         [Parameter(Mandatory=$false)]
         [string]$DeviceAddress,
@@ -32,7 +32,7 @@ function Update-PiConnectionSettings {
     Begin
     {
         $ModuleCurrent = Get-Module -Name 'DeployRaspberryTools'
-        $RaspberrySettingsfile = "$($ModuleCurrent.Path + "\RaspberrySettings.json")"
+        $RaspberrySettingsfile = "$($ModuleCurrent.ModuleBase + "\RaspberrySettings.json")"
         $test = Test-Path -Path $RaspberrySettingsfile
     }
 
@@ -40,11 +40,12 @@ function Update-PiConnectionSettings {
     {
         if(!$test)
         {
-            $EmptyTemplate = '{"ModuleVersion":"1.0.0.0","DeviceData":"{"deviceAddress":"","UserName":"pi","Password":"raspberry","DeploymentDir":"","SourceAddress":".\"}"}'
+            $EmptyTemplate = '{"ModuleVersion":"1.0.0.0","DeviceData":{"deviceAddress":"","UserName":"pi","Password":"raspberry","DeploymentDir":"","SourceAddress":""}}'
             New-Item -Path $RaspberrySettingsfile -Value $EmptyTemplate
         }
-    
-        $RaspberrySettings = $(Get-Content -Path $RaspberrySettingsfile | ConvertFrom-Json).DeviceData
+        
+        $RaspberrySettingsFull = Get-Content -Path $RaspberrySettingsfile | ConvertFrom-Json
+        $RaspberrySettings = $RaspberrySettingsFull.DeviceData
         
         if($userName)
         {
@@ -71,7 +72,9 @@ function Update-PiConnectionSettings {
             $RaspberrySettings.SourceAddress = $SourceAddress
         }
 
-        Set-Item -Path $RaspberrySettingsfile -Value $RaspberrySettings
+        $RaspberrySettingsFull.DeviceData = $RaspberrySettings 
+        $RaspberrySettingsFullJson = ConvertTo-Json -InputObject $RaspberrySettingsFull -Depth 3 -Compress
+        Set-Content -Path $RaspberrySettingsfile -Value $RaspberrySettingsFullJson -Force
     }
     
 }
